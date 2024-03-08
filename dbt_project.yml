@@ -33,11 +33,21 @@ clean-targets:         # directories to be removed by `dbt clean`
 # In this example config, we tell dbt to build all models in the example/
 # directory as views. These settings can be overridden in the individual model
 # files using the `{{ config(...) }}` macro.
+
+on-run-start:
+  - "{% for schema in schemas %}grant usage on schema {{ schema }} to group reporter; {% endfor %}"
+
+on-run-end:
+  "{{ grant_select(schemas) }}"
+
 models:
   dbt_kahan:
-    # Config indicated by + and applies to all files under models/example/
     staging:
       +materialized: view
       +schema: staging
       example:
+        +pre-hook:
+          - "GRANT SELECT ON {{ this }} TO ROLE REPORTER"
+        +post-hook:
+          - "REMOVE SELECT ON {{ this }} TO ROLE PC"
         +materialized: table
